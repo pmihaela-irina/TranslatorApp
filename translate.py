@@ -143,7 +143,7 @@ class UI(QMainWindow):
             playsound('zapsplat_multimedia_game_error_tone_002_24920.mp3')
             QMessageBox.about(self, "Translator", str(e))
 
-    def speechToText(self, recognizer, microphone):
+    def speechToText(self, recognizer, microphone,  to_language_key):
         with microphone as source:
             recognizer.adjust_for_ambient_noise(source)
             audio = recognizer.listen(source)
@@ -155,7 +155,7 @@ class UI(QMainWindow):
         }
 
         try:
-            response["transcription"] = recognizer.recognize_google(audio)
+            response["transcription"] = recognizer.recognize_google(audio, language= to_language_key)
         except sr.RequestError:
             response["success"] = False
             response["error"] = "API unavailable"
@@ -177,7 +177,7 @@ class UI(QMainWindow):
         words = translator.translate('I listen..', src='en', dest=to_language_key)
         print(words.text)
         text_textEdit.setPlainText(words.text)
-        text = self.speechToText(recognizer, microphone)
+        text = self.speechToText(recognizer, microphone,  to_language_key)
         if not text["success"] and text["error"] == "API unavailable":
             text_textEdit.setPlainText("ERROR: {}\nclose program".format(text["error"]))
             sys.exit()
@@ -188,8 +188,8 @@ class UI(QMainWindow):
         if (text["transcription"].lower() == "exit"):
             quitFlag = False
         print(text["transcription"].lower())
-        words = translator.translate(text["transcription"].lower(), src='en', dest=to_language_key)
-        text_textEdit.setPlainText(words.text)
+        #words = translator.translate(text["transcription"].lower(), src='en', dest=to_language_key)
+        text_textEdit.setPlainText(text["transcription"].lower())
         # self.textToSpeech(text["transcription"].lower(), language_comboBox, sound_button)
 
     def readFile(self):
