@@ -28,8 +28,7 @@ class UI(QMainWindow):
         self.clear_button = self.findChild(QPushButton, "pushButton_clear")
         self.soundLang1_button = self.findChild(QPushButton, "pushButton_soundLang1")
         self.soundLang2_button = self.findChild(QPushButton, "pushButton_soundLang2")
-        self.recordLang1_button = self.findChild(QPushButton, "pushButton_recordLang1")
-        self.recordLang2_button = self.findChild(QPushButton, "pushButton_recordLang2")
+        self.record_button = self.findChild(QPushButton, "pushButton_record")
         # set color for buttons
         self.translate_button.setStyleSheet(
             "background-color : " + self.file['dark_blue'] + "; color : " + self.file['light_blue'])
@@ -39,19 +38,17 @@ class UI(QMainWindow):
             "background-color : " + self.file['light_blue1'])
         self.soundLang2_button.setStyleSheet(
             "background-color : " + self.file['light_blue1'])
-        self.recordLang1_button.setStyleSheet(
+        self.record_button.setStyleSheet(
             "background-color : " + self.file['light_blue1'])
-        self.recordLang2_button.setStyleSheet(
-            "background-color : " + self.file['light_blue1'])
+
         #set icons for buttons
         self.soundLang1_button.setIcon(self.style().standardIcon(QStyle.SP_MediaVolume))
         self.soundLang2_button.setIcon(self.style().standardIcon(QStyle.SP_MediaVolume))
-        self.recordLang1_button.setIcon(QIcon('mic_icon.png'))
-        self.recordLang2_button.setIcon(QIcon('mic_icon.png'))
+        self.record_button.setIcon(QIcon('mic_icon.png'))
 
         self.lang1_comboBox = self.findChild(QComboBox, "comboBox_lang1")
         self.lang2_comboBox = self.findChild(QComboBox, "comboBox_lang2")
-        #self.lang1_comboBox.setStyle(self.style().)
+        # TODO fix scoll bar for comboBoxes
         self.lang1_comboBox.view().setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.lang2_comboBox.view().setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
@@ -61,12 +58,12 @@ class UI(QMainWindow):
         # click the buttons
         self.translate_button.clicked.connect(self.translate)
         self.clear_button.clicked.connect(self.clear)
-        self.soundLang1_button.clicked.connect(lambda: self.textToSpeach(self.text1_textEdit, self.lang1_comboBox,
+        self.soundLang1_button.clicked.connect(lambda: self.textToSpeech(self.text1_textEdit, self.lang1_comboBox,
                                                                          self.soundLang1_button))
-        self.soundLang2_button.clicked.connect(lambda: self.textToSpeach(self.text2_textEdit,
+        self.soundLang2_button.clicked.connect(lambda: self.textToSpeech(self.text2_textEdit,
                                                                          self.lang2_comboBox,
                                                                          self.soundLang2_button))
-        self.recordLang1_button.clicked.connect(lambda: self.record(self.lang1_comboBox, self.soundLang1_button))
+        self.record_button.clicked.connect(lambda: self.record(self.text1_textEdit, self.lang1_comboBox, self.soundLang1_button))
 
         # add lang to the combo boxes
         self.languages = googletrans.LANGUAGES
@@ -123,7 +120,7 @@ class UI(QMainWindow):
             QMessageBox.about(self, "Translator", str(e))
             print(e)
 
-    def textToSpeach(self, text_textEdit, language_comboBox, sound_button):
+    def textToSpeech(self, text_textEdit, language_comboBox, sound_button):
         try:
             playsound('zapsplat_multimedia_button_click_fast_short_002_79286.mp3')
             sound_button.setIcon(self.style().standardIcon(QStyle.SP_MediaStop))
@@ -168,23 +165,32 @@ class UI(QMainWindow):
 
         return response
 
-    def record(self, language_comboBox, sound_button):
+    def record(self, text_textEdit, language_comboBox, sound_button):
         recognizer = sr.Recognizer()
         microphone = sr.Microphone()
 
-        quitFlag = True
-        while quitFlag:
+        for key, value in self.languages.items():
+            if value == language_comboBox.currentText():
+                to_language_key = key
+
+        translator = googletrans.Translator()
+        words = translator.translate('I listen..', src='en', dest=to_language_key)
+        print(words.text)
+        text_textEdit.setPlainText(words.text)
+        text = self.speechToText(recognizer, microphone)
+        if not text["success"] and text["error"] == "API unavailable":
+            text_textEdit.setPlainText("ERROR: {}\nclose program".format(text["error"]))
+            sys.exit()
+        while not text["success"]:
+            print("I didn't catch that. What did you say?\n")
+            text_textEdit.setPlainText("I didn't catch that. What did you say?\n")
             text = self.speechToText(recognizer, microphone)
-            if not text["success"] and text["error"] == "API unavailable":
-                print("ERROR: {}\nclose program".format(text["error"]))
-                break;
-            while not text["success"]:
-                print("I didn't catch that. What did you say?\n")
-                text = self.speechToText(recognizer, microphone)
-            if (text["transcription"].lower() == "exit"):
-                quitFlag = False
-            print(text["transcription"].lower())
-            self.textToSpeech(text["transcription"].lower(), language_comboBox, sound_button)
+        if (text["transcription"].lower() == "exit"):
+            quitFlag = False
+        print(text["transcription"].lower())
+        words = translator.translate(text["transcription"].lower(), src='en', dest=to_language_key)
+        text_textEdit.setPlainText(words.text)
+        # self.textToSpeech(text["transcription"].lower(), language_comboBox, sound_button)
 
     def readFile(self):
         # JSON file
