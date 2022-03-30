@@ -1,0 +1,6 @@
+light_blue #66D7EB
+light_blue1 #51ACC5
+blue #3E849E
+dark_blue #2C5F78
+dark_blue1 #0E12B
+dark #010305
