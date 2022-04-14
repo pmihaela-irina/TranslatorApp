@@ -1,8 +1,9 @@
 from PyQt5.QtGui import QIcon
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtWidgets import QApplication, QPushButton, QTextEdit, QVBoxLayout, QComboBox, QMessageBox, QMainWindow, \
     QStyle
 from PyQt5 import uic
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QUrl
 from playsound import playsound
 from gtts import gTTS
 import sys
@@ -63,7 +64,7 @@ class UI(QMainWindow):
         self.soundLang2_button.clicked.connect(lambda: self.textToSpeech(self.text2_textEdit,
                                                                          self.lang2_comboBox,
                                                                          self.soundLang2_button))
-        self.record_button.clicked.connect(lambda: self.record(self.text1_textEdit, self.lang1_comboBox, self.soundLang1_button))
+        self.record_button.clicked.connect(self.record)
 
         # add lang to the combo boxes
         self.languages = googletrans.LANGUAGES
@@ -81,8 +82,15 @@ class UI(QMainWindow):
         self.lang1_comboBox.setCurrentText("romanian")
         self.lang2_comboBox.setCurrentText("english")
 
+        self.player = QMediaPlayer()
+
     def clear(self):
-        playsound('zapsplat_multimedia_button_click_fast_short_002_79286.mp3')
+        #playsound('zapsplat_multimedia_button_click_fast_short_002_79286.mp3')
+        full_file_path = os.path.join(os.getcwd(),'zapsplat_multimedia_button_click_fast_short_002_79286.mp3')
+        url = QUrl.fromLocalFile(full_file_path)
+        content = QMediaContent(url)
+        self.player.setMedia(content)
+        self.player.play()
         # clear the text boxes
         self.text1_textEdit.setText("")
         self.text2_textEdit.setText("")
@@ -93,7 +101,12 @@ class UI(QMainWindow):
 
     def translate(self):
         try:
-            playsound('zapsplat_multimedia_button_click_fast_short_002_79286.mp3')
+            #playsound('zapsplat_multimedia_button_click_fast_short_002_79286.mp3')
+            full_file_path = os.path.join(os.getcwd(), 'zapsplat_multimedia_button_click_fast_short_002_79286.mp3')
+            url = QUrl.fromLocalFile(full_file_path)
+            content = QMediaContent(url)
+            self.player.setMedia(content)
+            self.player.play()
             # get original language key
             for key, value in self.languages.items():
                 if value == self.lang1_comboBox.currentText():
@@ -116,13 +129,25 @@ class UI(QMainWindow):
             # playsound('https://kstatic.googleusercontent.com/files/c69e6ccd8c737fa86fe5447bfe8c819ca32f1c920663223730dc2ddb5cf4d6b9aa8d94c88717cb999e7e0a2291e2d63e84e67b2a452b7ec52275f487f896f884')
 
         except Exception as e:
-            playsound('zapsplat_multimedia_game_error_tone_002_24920.mp3')
+            # playsound('zapsplat_multimedia_game_error_tone_002_24920.mp3')
+            full_file_path = os.path.join(os.getcwd(), 'zapsplat_multimedia_game_error_tone_002_24920.mp3')
+            url = QUrl.fromLocalFile(full_file_path)
+            content = QMediaContent(url)
+            self.player.setMedia(content)
+            self.player.play()
+
             QMessageBox.about(self, "Translator", str(e))
             print(e)
 
     def textToSpeech(self, text_textEdit, language_comboBox, sound_button):
         try:
-            playsound('zapsplat_multimedia_button_click_fast_short_002_79286.mp3')
+            # playsound('zapsplat_multimedia_button_click_fast_short_002_79286.mp3')
+            full_file_path = os.path.join(os.getcwd(), 'zapsplat_multimedia_button_click_fast_short_002_79286.mp3')
+            url = QUrl.fromLocalFile(full_file_path)
+            content = QMediaContent(url)
+            self.player.setMedia(content)
+            self.player.play()
+            
             sound_button.setIcon(self.style().standardIcon(QStyle.SP_MediaStop))
             sound_button.repaint()
             text = text_textEdit.toPlainText()
@@ -145,8 +170,9 @@ class UI(QMainWindow):
 
     def speechToText(self, recognizer, microphone,  to_language_key):
         with microphone as source:
+            # recognizer.pause_threshold = 1
             recognizer.adjust_for_ambient_noise(source)
-            audio = recognizer.listen(source)
+            audio = recognizer.listen(source, phrase_time_limit=3)
 
         response = {
             "success": True,
@@ -155,7 +181,7 @@ class UI(QMainWindow):
         }
 
         try:
-            response["transcription"] = recognizer.recognize_google(audio, language= to_language_key)
+            response["transcription"] = recognizer.recognize_google(audio, language=to_language_key)
         except sr.RequestError:
             response["success"] = False
             response["error"] = "API unavailable"
@@ -165,32 +191,37 @@ class UI(QMainWindow):
 
         return response
 
-    def record(self, text_textEdit, language_comboBox, sound_button):
+    def record(self):
         recognizer = sr.Recognizer()
         microphone = sr.Microphone()
 
         for key, value in self.languages.items():
-            if value == language_comboBox.currentText():
+            if value == self.lang1_comboBox.currentText():
                 to_language_key = key
 
         translator = googletrans.Translator()
-        words = translator.translate('I listen..', src='en', dest=to_language_key)
+        words = translator.translate('Speak now..', src='en', dest=to_language_key)
         print(words.text)
-        text_textEdit.setPlainText(words.text)
-        text = self.speechToText(recognizer, microphone,  to_language_key)
-        if not text["success"] and text["error"] == "API unavailable":
-            text_textEdit.setPlainText("ERROR: {}\nclose program".format(text["error"]))
-            sys.exit()
-        while not text["success"]:
-            print("I didn't catch that. What did you say?\n")
-            text_textEdit.setPlainText("I didn't catch that. What did you say?\n")
-            text = self.speechToText(recognizer, microphone)
-        if (text["transcription"].lower() == "exit"):
-            quitFlag = False
-        print(text["transcription"].lower())
-        #words = translator.translate(text["transcription"].lower(), src='en', dest=to_language_key)
-        text_textEdit.setPlainText(text["transcription"].lower())
-        # self.textToSpeech(text["transcription"].lower(), language_comboBox, sound_button)
+        self.text1_textEdit.setPlainText(words.text)
+        quitFlag=True
+        while quitFlag:
+            text = self.speechToText(recognizer, microphone, to_language_key)
+            if not text["success"] and text["error"] == "API unavailable":
+                self.text1_textEdit.setPlainText("ERROR: {}\nclose program".format(text["error"]))
+                self.text1_textEdit.repaint()
+                sys.exit()
+            while not text["success"]:
+                print("I didn't catch that. What did you say?\n")
+                self.text1_textEdit.setPlainText(translator.translate("I didn't catch that. What did you say?\n", src='en', dest=to_language_key).text)
+                self.text1_textEdit.repaint()
+                text = self.speechToText(recognizer, microphone, to_language_key)
+
+            if text["transcription"].lower() == "exit":
+                quitFlag = False
+
+            print(text["transcription"].lower())
+            self.text1_textEdit.setPlainText(text["transcription"].lower())
+            self.text1_textEdit.repaint()
 
     def readFile(self):
         # JSON file
