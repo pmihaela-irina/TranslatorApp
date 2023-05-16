@@ -1,4 +1,6 @@
-# TranslatorApp - Application developed for the discipline "Human-computer interaction"
+# TranslatorApp
+Application developed for the discipline "Human-computer interaction"
+
 It was developed starting from the Google Translate application and offers the following functions:
 - the choice of languages from and in which the translation is made
 - speach to text
